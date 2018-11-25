@@ -26,7 +26,7 @@ app.use("/api", require("./routes/api"));
 app.use("/auth", require("./routes/auth"));
 
 mongoose
-  .connect("mongodb://localhost:27017/coffee-club-shout-tracker")
+  .connect("mongodb://localhost:27017/basketball-team-event-manager")
   .then(() => debug("Connected to MongoDB..."))
   .catch(err => debug("could not connect to MongoDB...", err));
 
