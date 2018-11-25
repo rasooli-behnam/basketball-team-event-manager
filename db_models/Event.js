@@ -11,6 +11,10 @@ const schema = new mongoose.Schema({
     required: true,
     index: true
   },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Member"
+  },
   payer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Member",
