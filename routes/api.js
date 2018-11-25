@@ -1,6 +1,7 @@
 const Event = require(__rootdir + "/db_models/Event");
-const router = require("express").Router();
 const ensureLoggedIn = require("connect-ensure-login").ensureLoggedIn;
+const Member = require(__rootdir + "/db_models/Member");
+const router = require("express").Router();
 
 router.get("/", (req, res) => {
   res.status(200).send(
@@ -21,6 +22,7 @@ router.get("/private", ensureLoggedIn("/auth/login"), (req, res) => {
   res.status(200).send("this is a private area...");
 });
 
+/*----------------Events----------------*/
 router.get("/events", (req, res) => {
   Event.find().then(events => {
     res.send(events);
@@ -66,6 +68,36 @@ router.delete("/events/:id", (req, res) => {
   const { id } = req.params;
 
   Event.findByIdAndRemove(id).then(updatedEvent => res.send(updatedEvent));
+});
+
+/*----------------Events----------------*/
+router.get("/members", (req, res) => {
+  Member.find().then(members => {
+    res.send(members);
+  });
+});
+
+router.get("/members/pendings", (req, res) => {
+  Member.find()
+    .where({ allowed_operation: [] })
+    .then(members => {
+      res.send(members);
+    });
+});
+
+router.put("/members/pendings/:id", async (req, res) => {
+  const { id } = req.params;
+  const { allowedOperations } = req.body;
+
+  const member = await Member.findById(id);
+
+  if (!member) return res.sendStatus(404);
+
+  member.allowed_operation = allowedOperations;
+
+  const savedMember = await member.save();
+
+  res.send(savedMember);
 });
 
 module.exports = router;
