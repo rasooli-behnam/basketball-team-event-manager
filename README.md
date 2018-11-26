@@ -1,4 +1,4 @@
-# coffee-club-shout-tracker
+# basketball-team-event-manager
 
 This is a project for my diploma course final assessment.
 
