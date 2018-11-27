@@ -10,7 +10,6 @@ passport.use(
       callbackURL: "http://localhost:8080/auth/callback"
     },
     function(accessToken, refreshToken, profile, done) {
-      console.log(profile.id);
       Member.findOne({ googleId: profile.id }).then(currentUser => {
         if (currentUser) done(null, currentUser);
         else {
