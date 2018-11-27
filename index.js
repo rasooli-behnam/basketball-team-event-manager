@@ -12,7 +12,14 @@ require("./auth");
 const app = new express();
 app.use(morgan("tiny"));
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(
+  cors({
+    origin: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+    exposedHeaders: ["x-auth-token"]
+  })
+);
 app.use(
   cookieSession({
     maxAge: 24 * 60 * 60 * 1000,
