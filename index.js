@@ -7,7 +7,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
 const passport = require("passport");
-require("./auth");
 
 const app = new express();
 app.use(morgan("tiny"));
@@ -30,7 +29,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use("/api", require("./routes/api"));
-app.use("/auth", require("./routes/auth"));
 
 mongoose
   .connect("mongodb://localhost:27017/basketball-team-event-manager")
