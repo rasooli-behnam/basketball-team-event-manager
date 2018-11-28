@@ -16,8 +16,7 @@ router.get("/", (req, res) => {
     DELETE - /api/events/:id<br/>
     <br/>
     GET - /api/members<br/>
-    GET - /api/members/pendings<br/>
-    PUT - /api/members/pendings/:id`
+    PUT - /api/members/:id`
   );
 });
 
@@ -112,17 +111,7 @@ router.get("/members", ensureAuthorisedUser, (req, res) => {
   });
 });
 
-router.get("/members/pendings", ensureAuthorisedUser, (req, res) => {
-  if (!req.user.allowed_operation.includes("read")) return res.send([]);
-
-  Member.find()
-    .where({ allowed_operation: [] })
-    .then(members => {
-      res.send(members);
-    });
-});
-
-router.put("/members/pendings/:id", ensureAuthorisedUser, async (req, res) => {
+router.put("/members/:id", ensureAuthorisedUser, async (req, res) => {
   if (!req.user.allowed_operation.includes("update"))
     return res.sendStatus(400);
 
