@@ -2,10 +2,13 @@ const Event = require(__rootdir + "/db_models/Event");
 const ensureLoggedIn = require("connect-ensure-login").ensureLoggedIn;
 const Member = require(__rootdir + "/db_models/Member");
 const router = require("express").Router();
+const axios = require("axios");
 
 router.get("/", (req, res) => {
   res.status(200).send(
     `Available API:<br/>
+    POST - /api/login
+    <br/>
     GET - /api/events<br/>
     GET - /api/events:id<br/>
     POST - /api/events<br/>
@@ -18,18 +21,38 @@ router.get("/", (req, res) => {
   );
 });
 
-router.get("/private", ensureLoggedIn("/auth/login"), (req, res) => {
-  res.status(200).send("this is a private area...");
+router.post("/login", (req, res) => {
+  verifyTokenId(req.header("x-auth-token"))
+    .then(result => {
+      if (result.existingUser) res.status(200).send("user already exist");
+      else {
+        new Member({
+          googleId: result.user.id,
+          name: result.user.displayName,
+          allowed_operation: []
+        })
+          .save()
+          .then(newUser => {
+            res.status(200).send("new user registered");
+          });
+      }
+    })
+    .catch(error => {
+      if (error) res.sendStatus(error.status);
+    });
 });
 
 /*----------------Events----------------*/
-router.get("/events", (req, res) => {
-  Event.find().then(events => {
-    res.send(events);
-  });
+router.get("/events", ensureAuthorisedUser, (req, res) => {
+  Event.find()
+    .populate("created_by", "name -_id")
+    .populate("payer", "name -_id")
+    .then(events => {
+      res.send(events);
+    });
 });
 
-router.get("/events/:id", (req, res) => {
+router.get("/events/:id", ensureAuthorisedUser, (req, res) => {
   const { id } = req.params;
 
   Event.findById(id).then(events => {
@@ -37,15 +60,14 @@ router.get("/events/:id", (req, res) => {
   });
 });
 
-router.post("/events", (req, res) => {
-  const { date, venue, memberId } = req.body;
+router.post("/events", ensureAuthorisedUser, (req, res) => {
+  const { user } = req;
+  const { date, venue } = req.body;
 
   new Event({
     date: date,
     venue: venue,
-    created_by: memberId,
-    payer: memberId,
-    bill_amount: 0
+    created_by: user.id
   })
     .save()
     .then(newEvent => {
@@ -53,7 +75,7 @@ router.post("/events", (req, res) => {
     });
 });
 
-router.put("/events/:id", (req, res) => {
+router.put("/events/:id", ensureAuthorisedUser, (req, res) => {
   const { id } = req.params;
   const { memberId, billAmount } = req.body;
 
@@ -64,20 +86,20 @@ router.put("/events/:id", (req, res) => {
   ).then(updatedEvent => res.send(updatedEvent));
 });
 
-router.delete("/events/:id", (req, res) => {
+router.delete("/events/:id", ensureAuthorisedUser, (req, res) => {
   const { id } = req.params;
 
   Event.findByIdAndRemove(id).then(updatedEvent => res.send(updatedEvent));
 });
 
-/*----------------Events----------------*/
-router.get("/members", (req, res) => {
+/*----------------members----------------*/
+router.get("/members", ensureAuthorisedUser, (req, res) => {
   Member.find().then(members => {
     res.send(members);
   });
 });
 
-router.get("/members/pendings", (req, res) => {
+router.get("/members/pendings", ensureAuthorisedUser, (req, res) => {
   Member.find()
     .where({ allowed_operation: [] })
     .then(members => {
@@ -85,7 +107,7 @@ router.get("/members/pendings", (req, res) => {
     });
 });
 
-router.put("/members/pendings/:id", async (req, res) => {
+router.put("/members/pendings/:id", ensureAuthorisedUser, async (req, res) => {
   const { id } = req.params;
   const { allowedOperations } = req.body;
 
@@ -101,3 +123,35 @@ router.put("/members/pendings/:id", async (req, res) => {
 });
 
 module.exports = router;
+
+function verifyTokenId(tokenId) {
+  return new Promise((resolve, reject) => {
+    axios
+      .get(`https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=${tokenId}`)
+      .then(response => {
+        Member.findOne({ googleId: response.data.sub }).then(currentUser => {
+          if (currentUser) resolve({ existingUser: true, user: currentUser });
+          else resolve({ existingUser: false, user: response.data });
+        });
+      })
+      .catch(error => {
+        if (error.response) reject(error.response);
+      });
+  });
+}
+
+function ensureAuthorisedUser(req, res, next) {
+  const token = req.header("x-auth-token");
+  if (!token) return res.sendStatus(401);
+
+  verifyTokenId(token)
+    .then(result => {
+      if (!result.existingUser) return res.sendStatus(400);
+
+      req.user = result.user;
+      next();
+    })
+    .catch(error => {
+      if (error) res.sendStatus(error.status);
+    });
+}
