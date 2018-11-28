@@ -25,9 +25,10 @@ router.post("/login", (req, res) => {
     .then(result => {
       if (result.existingUser) res.status(200).send("user already exist");
       else {
+        console.log(result.user);
         new Member({
-          googleId: result.user.id,
-          name: result.user.displayName,
+          googleId: result.user.sub,
+          name: result.user.name,
           allowed_operation: []
         })
           .save()
