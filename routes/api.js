@@ -44,6 +44,8 @@ router.post("/login", (req, res) => {
 
 /*----------------Events----------------*/
 router.get("/events", ensureAuthorisedUser, (req, res) => {
+  if (!req.user.allowed_operation.includes("read")) return res.send([]);
+
   Event.find()
     .populate("created_by", "name -_id")
     .populate("payer", "name -_id")
@@ -61,6 +63,9 @@ router.get("/events/:id", ensureAuthorisedUser, (req, res) => {
 });
 
 router.post("/events", ensureAuthorisedUser, (req, res) => {
+  if (!req.user.allowed_operation.includes("create"))
+    return res.sendStatus(400);
+
   const { user } = req;
   const { date, venue } = req.body;
 
@@ -76,6 +81,9 @@ router.post("/events", ensureAuthorisedUser, (req, res) => {
 });
 
 router.put("/events/:id", ensureAuthorisedUser, (req, res) => {
+  if (!req.user.allowed_operation.includes("update"))
+    return res.sendStatus(400);
+
   const { id } = req.params;
   const { memberId, billAmount } = req.body;
 
@@ -87,6 +95,9 @@ router.put("/events/:id", ensureAuthorisedUser, (req, res) => {
 });
 
 router.delete("/events/:id", ensureAuthorisedUser, (req, res) => {
+  if (!req.user.allowed_operation.includes("delete"))
+    return res.sendStatus(400);
+
   const { id } = req.params;
 
   Event.findByIdAndRemove(id).then(updatedEvent => res.send(updatedEvent));
@@ -94,12 +105,16 @@ router.delete("/events/:id", ensureAuthorisedUser, (req, res) => {
 
 /*----------------members----------------*/
 router.get("/members", ensureAuthorisedUser, (req, res) => {
+  if (!req.user.allowed_operation.includes("read")) return res.send([]);
+
   Member.find().then(members => {
     res.send(members);
   });
 });
 
 router.get("/members/pendings", ensureAuthorisedUser, (req, res) => {
+  if (!req.user.allowed_operation.includes("read")) return res.send([]);
+
   Member.find()
     .where({ allowed_operation: [] })
     .then(members => {
@@ -108,6 +123,9 @@ router.get("/members/pendings", ensureAuthorisedUser, (req, res) => {
 });
 
 router.put("/members/pendings/:id", ensureAuthorisedUser, async (req, res) => {
+  if (!req.user.allowed_operation.includes("update"))
+    return res.sendStatus(400);
+
   const { id } = req.params;
   const { allowedOperations } = req.body;
 
